@@ -1,46 +1,84 @@
 // exampleService.ts
-import EventsModel, { Event } from '../models/dataset.model';
-import { PlatformData, playersPerGame } from '../models/platforms.model';
+import { PlatformData } from '../models/platforms.model';
 import { GamesData, UserData } from '../models/user.model';
-import { Types } from 'mongoose';
+import DB from '../DB/db';
+import { QueryResult } from 'pg';
 
 class DatasetService {
     async getUserData(userId: string): Promise<UserData | null> {
         try {
-            const userActions: Event[] = await EventsModel.find({
-                userID: userId,
-            });
-            const platforms = [...new Set(userActions.map((_) => _.platform))];
-            const gamesMap = new Map<number, GamesData>();
-
-            userActions.forEach((event) => {
-                if (!gamesMap.has(event.gameID)) {
-                    gamesMap.set(event.gameID, {
-                        gameID: event.gameID,
-                        title: event.title,
-                        spent: event.price || 0,
-                    });
-                } else {
-                    const existingGameData = gamesMap.get(event.gameID);
-                    if (event.price && existingGameData) {
-                        existingGameData.spent += event.price;
+            const query = `
+            WITH UserPlatformSpending AS (
+                SELECT
+                    userID,
+                    platform,
+                    gameID,
+                    COALESCE(SUM(price), 0) AS totalSpent
+                FROM
+                    events.game_actions
+                WHERE
+                    userID = '${userId}'
+                GROUP BY
+                    userID,
+                    platform,
+                    gameID
+            ),
+            UserGames AS (
+                SELECT DISTINCT
+                    gameID,
+                    title
+                FROM
+                    events.game_actions
+                WHERE
+                    userID = '${userId}'
+            ),
+            GamesSpending AS (
+                SELECT
+                    UserGames.gameID,
+                    UserGames.title,
+                    UserPlatformSpending.platform,
+                    UserPlatformSpending.totalSpent AS spent
+                FROM
+                    UserGames
+                LEFT JOIN
+                    UserPlatformSpending ON UserGames.gameID = UserPlatformSpending.gameID
+            )
+            SELECT
+                '${userId}' AS "userID",
+                array_agg(DISTINCT UserPlatformSpending.platform) AS platforms,
+                COALESCE(SUM(totalSpent), 0) AS "totalSpent",
+                json_agg(json_build_object('gameID', UserPlatformSpending.gameID, 'title', title, 'spent', spent)) AS "gamesData"
+            FROM
+                UserPlatformSpending
+            LEFT JOIN GamesSpending ON UserPlatformSpending.platform = GamesSpending.platform
+            GROUP BY
+                userID;
+`;
+            const result: QueryResult<UserData> = await DB.query(query);
+            if (result.rows[0]) {
+                const gamesData: GamesData[] = [];
+                result.rows[0].gamesData.forEach((action) => {
+                    const game = gamesData.find(
+                        (_) => _.gameID === action.gameID
+                    );
+                    if (game) {
+                        game.spent += action.spent;
+                    } else {
+                        gamesData.push(action);
                     }
-                }
-            });
+                });
 
-            const gamesData: GamesData[] = Array.from(gamesMap.values());
-            const totalSpent = gamesData.reduce(
-                (acc, gameData) => acc + gameData.spent,
-                0
-            );
-            const userData: UserData = {
-                userID: userId,
-                platforms,
-                totalSpent,
-                gamesData,
-            };
-            if (userData) return userData;
-            return null;
+                const userData: UserData = {
+                    userID: result.rows[0].userID,
+                    platforms: result.rows[0].platforms,
+                    totalSpent: result.rows[0].totalSpent,
+                    gamesData,
+                };
+                return userData;
+            } else {
+                console.error(`Cannot find user with id of: ${userId}`);
+                return null;
+            }
         } catch (_error) {
             const error = _error as Error;
             console.error(
@@ -51,74 +89,46 @@ class DatasetService {
     }
     async getPlatformsData(): Promise<PlatformData[]> {
         try {
-            // Define and execute the aggregation pipeline
-            const DBData = await EventsModel.aggregate(
-                [
-                    {
-                        $group: {
-                            _id: {
-                                platform: '$platform',
-                                gameID: '$gameID',
-                            },
-                            totalPlayers: {
-                                $sum: 1,
-                            },
-                            totalEarns: {
-                                $sum: '$price',
-                            },
-                            games: {
-                                $push: {
-                                    title: '$title',
-                                    players: 1,
-                                    earns: '$price',
-                                },
-                            },
-                        },
-                    },
-                    {
-                        $group: {
-                            _id: '$_id.platform',
-                            platform: {
-                                $first: '$_id.platform',
-                            },
-                            games: {
-                                $push: {
-                                    gameID: '$_id.gameID',
-                                    title: {
-                                        $first: '$games.title',
-                                    },
-                                    players: {
-                                        $sum: '$games.players',
-                                    },
-                                    earns: {
-                                        $sum: '$games.earns',
-                                    },
-                                },
-                            },
-                            totalPlayers: {
-                                $sum: '$totalPlayers',
-                            },
-                            totalEarns: {
-                                $sum: '$totalEarns',
-                            },
-                        },
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            platform: 1,
-                            games: 1,
-                            totalPlayers: 1,
-                            totalEarns: 1,
-                        },
-                    },
-                ],
-                { allowDiskUse: true }
-            );
-
-            console.log(DBData);
-
-            return DBData;
+            const query = `
+            SELECT 
+                platform,
+                SUM(players) AS "totalPlayers",
+                SUM(earns) AS "totalEarns",
+                JSON_AGG(
+                    JSON_BUILD_OBJECT(
+                        'gameID', gameID,
+                        'title', title,
+                        'players', players,
+                        'earns', earns
+                    )
+                ) AS games
+            FROM (
+                SELECT
+                    platform,
+                    gameID,
+                    title,
+                    COUNT(DISTINCT userID) AS players,
+                    SUM(price) AS earns
+                FROM
+                    events.game_actions
+                GROUP BY
+                    platform, gameID, title
+            ) AS GameAggregates
+            GROUP BY
+                platform
+            ORDER BY
+                platform;        
+            `;
+            const result: QueryResult<PlatformData> = await DB.query(query);
+            const platformData: PlatformData[] = result.rows.map((row) => {
+                return {
+                    platform: row.platform,
+                    totalPlayers: row.totalPlayers,
+                    totalEarns: row.totalEarns,
+                    games: row.games,
+                };
+            });
+            return platformData || [];
         } catch (_error) {
             const error = _error as Error;
             console.error(

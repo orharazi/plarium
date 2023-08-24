@@ -1,5 +1,6 @@
-import { Game } from './dataset.model';
+import { Game } from './user.model';
 
+// This is the interface of our response data fron /platforms route
 export interface PlatformData {
     platform: string;
     totalPlayers: number;

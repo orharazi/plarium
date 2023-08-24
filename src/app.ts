@@ -2,7 +2,6 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { marked } from 'marked';
-import MongoDBConnection from './DB/db';
 
 class Server {
     private app: Express;
@@ -10,28 +9,27 @@ class Server {
     private routesDirectory: string;
 
     constructor() {
-        this.app = express();
-        this.routesDirectory = path.join(__dirname, 'routes');
-        this.port = Number(process.env.PORT) || 3000;
+        this.app = express(); // Creating express app
+        this.routesDirectory = path.join(__dirname, 'routes'); // Used later when exposing our routes
+        this.port = Number(process.env.PORT) || 3000; // Defalut port is 3000, you can change it from env
     }
 
     async start(): Promise<void> {
+        // Serving our app on our port
         const server = this.app.listen(this.port, () => {
             console.log(
                 `Plarium API is running at http://localhost:${this.port}`
             );
         });
-        try {
-            const DB_URI: string = process.env.DB_URI || '';
-            const dbConnection = new MongoDBConnection(DB_URI);
 
-            await dbConnection.connect(); //connect to mongoDB
-            await this.setupRoutes(); // setup all routes
-            this.useReadmeAsRoot(); // show README.md in the root route
-            this.errorHandling(); // handle errors on while making requests to the api
+        // Few steps that require for our app
+        try {
+            await this.setupRoutes(); // Setup all routes
+            this.useReadmeAsRoot(); // Show README.md in the root route
+            this.errorHandling(); // Handle errors on while making requests to the api
         } catch (_error) {
             server.close();
-            // catch for any errors on start() function
+            // Catch for any errors on start() function
             const error = _error as Error;
             throw Error(
                 `Error while running server: ${error.name}: ${error.message}, ${error.stack}`
@@ -40,15 +38,16 @@ class Server {
     }
 
     /**
-     *  Make every file in /routes directory to route with the name of the file.
+     * Make every file in /routes directory to route with the name of the file.
      * Exmaple: user.ts will be route localhost:3000/user.
      * The router exported from this file will be used under this route.
      */
     private async setupRoutes() {
         const files = fs.readdirSync(this.routesDirectory);
         for (const file of files) {
-            if (file.endsWith('.ts')) {
-                const routePath = `/${file.replace('.ts', '')}`;
+            const fileExtention = file.split('.').at(-1); // Last string after "." always will be fileExtention. Example: or.harazi.ts => ts
+            if (['ts', 'js'].includes(fileExtention!)) {
+                const routePath = `/${file.replace(`.${fileExtention}`, '')}`;
                 const routeModule = await import(
                     path.join(this.routesDirectory, file)
                 );
