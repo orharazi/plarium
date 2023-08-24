@@ -1,24 +1,36 @@
-import mongoose from 'mongoose';
+import { Pool, QueryResult } from 'pg';
+import Config from '../DB/config';
+import { DbConfig } from './config';
 
-class MongoDBConnection {
-    private uri: string;
+class DBConnection {
+    private pool: Pool;
 
-    constructor(uri: string | undefined) {
-        if (!uri) {
-            throw Error('no mongoDB uri given, plaese add valid DB_URI as env');
+    constructor(config: DbConfig | undefined) {
+        if (!config) {
+            throw Error(
+                'No config given, check for this environment variables: PORT, PG_HOST, PG_DB, PG_USER, PG_PASS, PG_PORT,'
+            );
         } else {
-            this.uri = uri;
+            this.pool = new Pool(config);
         }
     }
 
-    async connect(): Promise<void> {
+    /**
+     * This function let us connect to our DB only when users make requests,
+     * then we run our query and when we finish - we disconnect.
+     * @param queryText - Our query
+     * @param params - Optional parameters for our query
+     * @returns - Data from our query
+     */
+    async query(queryText: string, params?: any[]): Promise<QueryResult<any>> {
+        const client = await this.pool.connect();
         try {
-            await mongoose.connect(this.uri);
-            console.log('Connected to MongoDB!');
-        } catch (error) {
-            throw Error(`MongoDB connection error: ${error}`);
+            const result = await client.query(queryText, params);
+            return result;
+        } finally {
+            client.release();
         }
     }
 }
 
-export default MongoDBConnection;
+export default new DBConnection(Config);

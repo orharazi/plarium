@@ -1,6 +1,7 @@
 import Server from './app';
 import dotenv from 'dotenv';
 
+// This function run our service
 (() => {
     try {
         dotenv.config();
