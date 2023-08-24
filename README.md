@@ -59,13 +59,8 @@ Just in case, I will introduce them here:
 
 Here are some instructions on how you can use this service.
 
-Using Node.js:
-
-1. Start the application: `npm run start`
-
-Using Docker:
-
-1. Run a container for the previously created image: `docker run -p 3000:3000 plarium`
+Using Node.js, start the application: `npm run start`
+Using Docker, run a container for the previously created image: `docker run -p 3000:3000 plarium`
 
 Now, the service is running, and you can interact with it on the port you chose before (default port is 3000).
 Let's discuss the available routes.
