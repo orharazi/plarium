@@ -2,9 +2,11 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { marked } from 'marked';
+import http from 'http';
 
 class Server {
     private app: Express;
+    public appListener: http.Server | undefined;
     private port: number;
     private routesDirectory: string;
 
@@ -16,7 +18,7 @@ class Server {
 
     async start(): Promise<void> {
         // Serving our app on our port
-        const server = this.app.listen(this.port, () => {
+        this.appListener = this.app.listen(this.port, () => {
             console.log(
                 `Plarium API is running at http://localhost:${this.port}`
             );
@@ -28,12 +30,18 @@ class Server {
             this.useReadmeAsRoot(); // Show README.md in the root route
             this.errorHandling(); // Handle errors on while making requests to the api
         } catch (_error) {
-            server.close();
+            this.appListener.close();
             // Catch for any errors on start() function
             const error = _error as Error;
             throw Error(
                 `Error while running server: ${error.name}: ${error.message}, ${error.stack}`
             );
+        }
+    }
+
+    close(): void {
+        if (this.appListener) {
+            this.appListener.close();
         }
     }
 
