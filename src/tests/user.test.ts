@@ -27,13 +27,58 @@ describe('GET User Route', () => {
 
 const expectedUserData = {
     userID: '0822acd7-81fb-4160-80af-8e1211392ed6',
-    platforms: ['android', 'desktop', 'ios', 'web'],
+    platforms: [
+        {
+            platform: 'ios',
+            totalActions: 7,
+            spent: 0.77,
+        },
+        {
+            platform: 'android',
+            totalActions: 3,
+            spent: 0,
+        },
+        {
+            platform: 'desktop',
+            totalActions: 3,
+            spent: 0.22,
+        },
+        {
+            platform: 'web',
+            totalActions: 1,
+            spent: 0,
+        },
+    ],
     totalSpent: 0.99,
     gamesData: [
         {
-            gameID: 5,
             title: 'Throne',
             spent: 0.99,
+            platforms: [
+                {
+                    platform: 'ios',
+                    totalActions: 7,
+                    spent: 0.77,
+                },
+                {
+                    platform: 'android',
+                    totalActions: 3,
+                    spent: 0,
+                },
+                {
+                    platform: 'desktop',
+                    totalActions: 3,
+                    spent: 0.22,
+                },
+                {
+                    platform: 'web',
+                    totalActions: 1,
+                    spent: 0,
+                },
+            ],
+            activePlayer: true,
         },
     ],
+    totalActions: 14,
+    activePlayer: true,
 };
