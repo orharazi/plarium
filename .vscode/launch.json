@@ -12,7 +12,7 @@
             "type": "node",
             "runtimeArgs": ["run-script", "dev"],
             "cwd": "${workspaceRoot}"
-        }
+        },
         {
             "name": "test",
             "request": "launch",
