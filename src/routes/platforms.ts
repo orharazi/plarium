@@ -11,7 +11,6 @@ platformsRouter.get('/', async (req: Request, res: Response) => {
         // This function should return as our relevant data from out DB and manipulate it
         const platformsData: PlatformData[] =
             await platformsController.obtainPlatformsInfo();
-        res.status(200).json(platformsData);
 
         if (platformsData.length > 0) {
             res.status(200).json(platformsData);

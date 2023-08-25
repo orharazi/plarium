@@ -74,19 +74,35 @@ You need to provide the `userId` for an existing user from the database.
 Let's explain the returned data from this route:
 
 -   `userID`: The userID from the database (should be the same as provided, just for confirmation).
--   `platforms`: An array of the platforms the user is playing on. Example: `["ios", "desktop"]`.
+-   `platforms`: An array of the platforms the user is playing on, how much actions he did and how much money he spent on this game.
+    Example:
+
+    ````json
+        [
+            {
+                "platform": "ios",
+                "totalActions": "Throne",
+                "spent": 0.23
+            }
+        ]
+    ```
+    ````
+
 -   `totalSpent`: A number that represents the total amount the user has spent. Example: `15.65`.
--   `gamesData`: An array of all the games the user has played and how much money he spent on each game.
+-   `gamesData`: An array of all the games the user has played, how much money he spent and if he is an active player on each game.
     Example:
     ```json
     [
         {
             "gameID": 5,
             "title": "Throne",
-            "spent": 0.99
+            "spent": 0.99,
+            "activePlayer": true
         }
     ]
     ```
+-   `totalActions`: A number that represents the total actions the user did. Example: `12`.
+-   `activePlayer`: Check if the user is still playing in any games. Example: `true`.
 
 2. `GET /platforms`:
 
@@ -112,3 +128,7 @@ Let's explain the data inside each platform object:
     ```
 
 That's it. Enjoy!
+
+```
+
+```
