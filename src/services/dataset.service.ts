@@ -130,35 +130,40 @@ class DatasetService {
     async getPlatformsData(): Promise<PlatformData[]> {
         try {
             const query = `
-            SELECT 
-                platform,
-                SUM(players) AS "totalPlayers",
-                SUM(earns) AS "totalEarns",
-                JSON_AGG(
-                    JSON_BUILD_OBJECT(
-                        'gameID', gameID,
-                        'title', title,
-                        'players', players,
-                        'earns', earns
-                    )
-                ) AS games
-            FROM (
-                SELECT
-                    platform,
-                    gameID,
-                    title,
-                    COUNT(DISTINCT userID) AS players,
-                    SUM(price) AS earns
-                FROM
-                    events.game_actions
-                GROUP BY
-                    platform, gameID, title
-            ) AS GameAggregates
-            GROUP BY
-                platform
-            ORDER BY
-                platform;        
-            `;
+SELECT 
+    platform,
+    SUM(totalPlayers) AS "totalPlayers",
+    SUM(earns) AS "totalEarns",
+    JSON_AGG(
+        JSON_BUILD_OBJECT(
+            'gameID', gameID,
+            'title', title,
+            'totalPlayers', totalPlayers,
+            'earns', earns,
+            'activePlayers', activePlayers
+        )
+    ) AS games,
+    SUM(activePlayers) AS "activePlayers"
+FROM (
+    SELECT
+        platform,
+        gameID,
+        title,
+        COUNT(DISTINCT userID) AS totalPlayers,
+        SUM(price) AS earns,
+        COUNT(DISTINCT CASE WHEN action = 'register' THEN userID END) -
+        COUNT(DISTINCT CASE WHEN action = 'unregister' THEN userID END) AS activePlayers
+    FROM
+        events.game_actions
+    GROUP BY
+        platform, gameID, title
+) AS GameAggregates
+GROUP BY
+    platform
+ORDER BY
+    platform;
+
+        `;
             const result: QueryResult<PlatformData> = await DB.query(query);
             const platformData: PlatformData[] = result.rows;
             if (platformData.length > 0) {

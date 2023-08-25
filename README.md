@@ -113,15 +113,17 @@ Let's explain the data inside each platform object:
 -   `platform`: The name of the platform. Example: "ios".
 -   `totalPlayers`: The number of unique players on the platform. Example: 19473.
 -   `totalEarns`: The total amount of money coming in through this platform. Example: 1425.45.
--   `games`: An array of all the games available on the platform, along with the number of unique players playing each game and the amount of money each game earned.
+-   `activePlayers`: The number of active players on this platform
+-   `games`: An array of all the games available on the platform, along with the number of unique players ever played, the number of active players and the amount of money each game earned.
     Example:
     ```json
     [
         {
             "gameID": 5,
             "title": "Throne",
-            "players": 3940,
-            "earns": 430.54
+            "totalPlayers": 3940,
+            "earns": 430.54,
+            "activePlayers": 2134
         }
     ]
     ```

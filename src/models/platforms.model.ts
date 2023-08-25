@@ -6,9 +6,11 @@ export interface PlatformData {
     totalPlayers: number;
     totalEarns: number;
     games: playersPerGame[];
+    activePlayers: number;
 }
 
 export interface playersPerGame extends Game {
-    players: number;
+    activePlayers: number;
+    totalPlayers: number;
     earns: number;
 }
