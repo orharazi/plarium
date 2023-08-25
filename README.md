@@ -77,16 +77,15 @@ Let's explain the returned data from this route:
 -   `platforms`: An array of the platforms the user is playing on, how much actions he did and how much money he spent on this game.
     Example:
 
-    ````json
-        [
-            {
-                "platform": "ios",
-                "totalActions": "Throne",
-                "spent": 0.23
-            }
-        ]
+    ```json
+    [
+        {
+            "platform": "ios",
+            "totalActions": "Throne",
+            "spent": 0.23
+        }
+    ]
     ```
-    ````
 
 -   `totalSpent`: A number that represents the total amount the user has spent. Example: `15.65`.
 -   `gamesData`: An array of all the games the user has played, how much money he spent and if he is an active player on each game.
