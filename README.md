@@ -81,7 +81,7 @@ Let's explain the returned data from this route:
     [
         {
             "platform": "ios",
-            "totalActions": "Throne",
+            "totalActions": 3,
             "spent": 0.23
         }
     ]

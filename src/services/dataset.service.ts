@@ -12,7 +12,13 @@ import { QueryResult } from 'pg';
 class DatasetService {
     async getUserData(userId: string): Promise<UserData | null> {
         try {
-            const query = `SELECT * FROM events.game_actions where userid = '${userId}'`;
+            const query = `
+            SELECT 
+                action, gameid AS "gameID", platform, price, title, userid as "userID" 
+            FROM 
+                events.game_actions 
+            WHERE 
+                userid = '${userId}'`;
             const result: QueryResult<Action> = await DB.query(query);
 
             if (result.rows.length > 0) {
