@@ -1,6 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import UserController from '../controllers/user.controller';
-import { UserData } from '../models/user.model';
+import { APIResponse, UserData } from '../models/user.model';
 
 const userController = new UserController();
 const userRouter = express.Router();
@@ -11,10 +11,11 @@ userRouter.get('/:id', async (req: Request, res: Response) => {
         console.log(`GET /user/${userId} ${new Date()}`);
         if (userId) {
             // This function should return as our relevant data from out DB and manipulate it
-            const userInfo: UserData | null =
-                await userController.obtainUserInfo(userId);
-            if (userInfo) {
-                res.status(200).json(userInfo);
+            const userInfo: APIResponse = await userController.obtainUserInfo(
+                userId
+            );
+            if (userInfo.success) {
+                res.status(200).json(userInfo.data);
             } else {
                 res.status(400).send('Could not getting data, check console.');
             }
