@@ -1,6 +1,7 @@
 // exampleService.ts
 import { PlatformData } from '../models/platforms.model';
 import {
+    APIResponse,
     Action,
     GamesData,
     UserData,
@@ -13,7 +14,7 @@ class DatasetService {
     constructor(knex: any) {
         this.knex = knex;
     }
-    async getUserData(userId: string): Promise<UserData | null> {
+    async getUserData(userId: string): Promise<APIResponse> {
         try {
             const userActions: Action[] = await this.knex
                 .select(
@@ -125,20 +126,29 @@ class DatasetService {
                     totalActions: userActions.length,
                     activePlayer: gamesData.some((game) => game.activePlayer),
                 };
-                return userData;
+                return {
+                    data: userData,
+                    success: true,
+                };
             } else {
-                console.error(`Cannot find user with id of: ${userId}`);
-                return null;
+                const msg = `Cannot find user with id of: ${userId}`;
+                console.error(msg);
+                return {
+                    success: false,
+                    msg,
+                };
             }
         } catch (_error) {
             const error = _error as Error;
-            console.error(
-                `Error while getUserData(): ${error.name}: ${error.message}`
-            );
-            return null;
+            const msg = `Error while getUserData(): ${error.name}: ${error.message}`;
+            console.error(msg);
+            return {
+                success: false,
+                msg,
+            };
         }
     }
-    async getPlatformsData(): Promise<PlatformData[]> {
+    async getPlatformsData(): Promise<APIResponse> {
         try {
             const subquery = this.knex
                 .select([
@@ -195,16 +205,26 @@ class DatasetService {
                 .orderBy('platform');
 
             if (platformData.length > 0) {
-                return platformData;
+                return {
+                    data: platformData,
+                    success: true,
+                };
             } else {
-                throw Error('Cannot get game actions');
+                const msg = 'Cannot get game actions';
+                console.error(msg);
+                return {
+                    success: false,
+                    msg,
+                };
             }
         } catch (_error) {
             const error = _error as Error;
-            console.error(
-                `Error while getPlatformsData(): ${error.name}: ${error.message}`
-            );
-            return [];
+            const msg = `Error while getPlatformsData(): ${error.name}: ${error.message}`;
+            console.error(msg);
+            return {
+                success: false,
+                msg,
+            };
         }
     }
 }

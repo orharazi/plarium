@@ -1,3 +1,5 @@
+import { PlatformData } from './platforms.model';
+
 // This is the interface of our response data fron /user/:id route
 export interface UserData {
     userID: string;
@@ -33,4 +35,10 @@ export interface Action {
     userID: String;
     action: string;
     price?: number;
+}
+
+export interface APIResponse {
+    success: boolean;
+    msg?: string;
+    data?: UserData | PlatformData[];
 }
