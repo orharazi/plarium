@@ -6,23 +6,28 @@ import {
     UserData,
     userPlatforms,
 } from '../models/user.model';
-import DB from '../DB/db';
-import { QueryResult } from 'pg';
+import knex from '../DB/knexConfig';
 
 class DatasetService {
+    private knex;
+    constructor(knex: any) {
+        this.knex = knex;
+    }
     async getUserData(userId: string): Promise<UserData | null> {
         try {
-            const query = `
-            SELECT 
-                action, gameid AS "gameID", platform, price, title, userid as "userID" 
-            FROM 
-                events.game_actions 
-            WHERE 
-                userid = '${userId}'`;
-            const result: QueryResult<Action> = await DB.query(query);
+            const userActions: Action[] = await this.knex
+                .select(
+                    'action',
+                    'gameid AS gameID',
+                    'platform',
+                    'price',
+                    'title',
+                    'userid AS userID'
+                )
+                .from('events.game_actions')
+                .where('userid', userId);
 
-            if (result.rows.length > 0) {
-                const userActions = result.rows;
+            if (userActions.length > 0) {
                 const platforms: userPlatforms[] = [];
                 const gamesData: GamesData[] = [];
 
@@ -135,43 +140,60 @@ class DatasetService {
     }
     async getPlatformsData(): Promise<PlatformData[]> {
         try {
-            const query = `
-SELECT 
-    platform,
-    SUM(totalPlayers) AS "totalPlayers",
-    SUM(earns) AS "totalEarns",
-    JSON_AGG(
-        JSON_BUILD_OBJECT(
-            'gameID', gameID,
-            'title', title,
-            'totalPlayers', totalPlayers,
-            'earns', earns,
-            'activePlayers', activePlayers
-        )
-    ) AS games,
-    SUM(activePlayers) AS "activePlayers"
-FROM (
-    SELECT
-        platform,
-        gameID,
-        title,
-        COUNT(DISTINCT userID) AS totalPlayers,
-        SUM(price) AS earns,
-        COUNT(DISTINCT CASE WHEN action = 'register' THEN userID END) -
-        COUNT(DISTINCT CASE WHEN action = 'unregister' THEN userID END) AS activePlayers
-    FROM
-        events.game_actions
-    GROUP BY
-        platform, gameID, title
-) AS GameAggregates
-GROUP BY
-    platform
-ORDER BY
-    platform;
+            const subquery = this.knex
+                .select([
+                    'platform',
+                    'gameid AS gameID',
+                    'title',
+                    this.knex.countDistinct('userid').as('totalPlayers'),
+                    this.knex.sum('price').as('earns'),
+                    this.knex
+                        .sum(
+                            this.knex.raw(
+                                "CASE WHEN action = 'register' THEN 1 ELSE 0 END"
+                            )
+                        )
+                        .as('registeredPlayers'),
+                    this.knex
+                        .sum(
+                            this.knex.raw(
+                                "CASE WHEN action = 'unregister' THEN 1 ELSE 0 END"
+                            )
+                        )
+                        .as('unregisteredPlayers'),
+                ])
+                .from('events.game_actions')
+                .groupBy('platform', 'gameID', 'title')
+                .as('GameAggregates');
 
-        `;
-            const result: QueryResult<PlatformData> = await DB.query(query);
-            const platformData: PlatformData[] = result.rows;
+            const platformData: PlatformData[] = await this.knex
+                .select([
+                    'platform',
+                    this.knex.sum('totalPlayers').as('totalPlayers'),
+                    this.knex.sum('earns').as('totalEarns'),
+                    this.knex.raw(`
+                        JSON_AGG(
+                            JSON_BUILD_OBJECT(
+                            'gameID', "gameID",
+                            'title', title,
+                            'totalPlayers', "totalPlayers",
+                            'earns', earns,
+                            'activePlayers', "registeredPlayers" - "unregisteredPlayers"
+                            )
+                        ) AS games
+                    `),
+                    this.knex
+                        .sum(
+                            this.knex.raw(
+                                '"registeredPlayers" - "unregisteredPlayers"'
+                            )
+                        )
+                        .as('activePlayers'),
+                ])
+                .from(subquery)
+                .groupBy('platform')
+                .orderBy('platform');
+
             if (platformData.length > 0) {
                 return platformData;
             } else {
@@ -187,4 +209,4 @@ ORDER BY
     }
 }
 
-export default new DatasetService();
+export default new DatasetService(knex);
