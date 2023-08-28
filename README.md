@@ -62,11 +62,18 @@ Here are some instructions on how you can use this service.
 Using Node.js, start the application: `npm run start`
 Using Docker, run a container for the previously created image: `docker run -p 3000:3000 plarium`
 
+NOTICE: API calles will return this:
+
+-   success: boolean field represent if the request completed successfully
+-   msg?: string field that includes any messages if needed;
+-   data?: If any data found, this Object field that contains the data returned from the request;
+
 Now, the service is running, and you can interact with it on the port you chose before (default port is 3000).
 Let's discuss the available routes.
+
 There are 2 routes for this service:
 
-1. `GET /user/:userId`:
+### `GET /user/:userId`:
 
 This route will return information about a specific user.
 You need to provide the `userId` for an existing user from the database.
@@ -103,7 +110,7 @@ Let's explain the returned data from this route:
 -   `totalActions`: A number that represents the total actions the user did. Example: `12`.
 -   `activePlayer`: Check if the user is still playing in any games. Example: `true`.
 
-2. `GET /platforms`:
+### `GET /platforms`:
 
 This route will return information about all platforms in the given data.
 
@@ -129,7 +136,3 @@ Let's explain the data inside each platform object:
     ```
 
 That's it. Enjoy!
-
-```
-
-```
